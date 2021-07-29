@@ -1,0 +1,347 @@
+---
+title: "WISP Report"
+params:
+  sitesOI:
+    input: select
+    label: Which launch would you like to include?
+    multiple: yes
+    value: SouthSandyCreek
+    choices:
+    - SouthSandyCreek
+    - NorthSandyPondFishingAccessSiteStanleyRoad
+    - LakeBonapartePublicBoatLaunchHarrisville
+    - CapeVincent
+    - SalmonRiverReservoirFishingAccessSiteRedfield
+    - MaryStreetBoatLaunch
+    - ButterfieldLakeFishingAccessSiteRedwood
+    - HeuveltonBoatLaunchOswegatchieRiver
+    - DeltaLakeStatePark
+    - GodfreyPointBoatLaunchSiteOneidaLake
+    - MassenaDamIntakeLaunchStLawrenceRiver
+    - SalmonRiverJacksonRd
+    - SacketsHarbor
+    - WrightsLandingMarinaOswegoHarbor
+    - IndianPointLanding
+output:
+  pdf_document: default
+  html_document:
+    highlight: null
+    theme: cerulean
+---
+
+
+```{r setup, echo=FALSE}
+this.date <- Sys.Date()
+this.year <- substring(this.date,1,4)
+
+
+library(arcgisbinding)
+arc.check_product()
+arc.check_portal()
+wfs <- arc.open("https://services6.arcgis.com/DZHaqZm9cxOD4CWM/ArcGIS/rest/services/WISPA_2019/FeatureServer/0?token=i1zXPDAqPNZaSAnaNLerk1lfeTrpty3pUWOpf0F8Uk9VTZrSSDEA7-G6GqoCpD2ibVnOL_zjWznINWJ9dWFfiUommboAQOAyhVtxX3Rsseip-6RaC8coAnOtVhKIProGVZXd88ofVxZKF-llcgrrSYsTtxsWiI-HIuzPfEwtXcDz96bswnL-xiMDItbGOifoiztXiJFl0nZR0MSP11lDYfIQKSYOfPL7qzmzI12-JoIQELHDQXqTHyjcbhs46Dj_")
+WISP_Raw <- arc.select(wfs)
+
+library(kableExtra)
+library(tidyverse)
+library(openxlsx)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+
+WISP_SLELO <- filter(WISP_Raw, OrgID == "SLELO") #& Launch.Name != "TestBoatLaunch")
+
+
+
+names(WISP_SLELO)[names(WISP_SLELO) == "Launch"] <- "Launch.Name"
+names(WISP_SLELO)[names(WISP_SLELO) == "Date"] <- "Survey.Date"
+names(WISP_SLELO)[names(WISP_SLELO) == "Total.watercraft:"] <- "Total.Watercraft"
+names(WISP_SLELO)[names(WISP_SLELO) == "Direction2018"] <- "Direction"
+
+WISP_SLELO$DayofWeek <- NA #add blank column for day of week
+WISP_SLELO <- mutate(WISP_SLELO, DayofWeek = weekdays(as.Date(WISP_SLELO$Survey.Date))) #calculate day of week
+
+WISP_SLELO <- mutate(WISP_SLELO, Survey.Date = format(as.POSIXct(WISP_SLELO$Survey.Date, format='%m/%d/%Y %H:%M:%S'),format='%m/%d/%Y'))#remove time string from survey date
+
+
+#rename species columns
+names(WISP_SLELO)[names(WISP_SLELO) == "NumBythotrephes"] <- "spiny/Fishhook.Water.flea"
+names(WISP_SLELO)[names(WISP_SLELO) == "NumCeratophyllumdemersum"] <- "Coontail"
+names(WISP_SLELO)[names(WISP_SLELO) == "NumCorbiculafluminea"] <- "Asian.Clam"
+names(WISP_SLELO)[names(WISP_SLELO) == "NumDreissenabugensis"] <- "Quagga.Mussel"
+names(WISP_SLELO)[names(WISP_SLELO) == "NumEgeriadensa"] <- "Brazilian.elodea"
+names(WISP_SLELO)[names(WISP_SLELO) == "NumElodeaspp"] <- "Elodea.spp"
+names(WISP_SLELO)[names(WISP_SLELO) == "NumFaxoniusrusticus"] <- "Rusty.crayfish"
+names(WISP_SLELO)[names(WISP_SLELO) == "NumDreissenapolymorpha"] <- "Zebra.Mussel"
+names(WISP_SLELO)[names(WISP_SLELO) == "NumMyriophyllumheterophyllum"] <- "Variable-leaf.Milfoil"
+names(WISP_SLELO)[names(WISP_SLELO) == "NumMyriophyllumspicatum"] <- "Eurasian.Watermilfoil"
+names(WISP_SLELO)[names(WISP_SLELO) == "NumPotamogetoncrispus"] <- "Curly.Leaf.Pondweed"
+names(WISP_SLELO)[names(WISP_SLELO) == "NumHydrillaverticillata"] <- "Hydrilla"
+names(WISP_SLELO)[names(WISP_SLELO) == "NumNitellopsisobtusa"] <- "Starry.Stonewort"
+names(WISP_SLELO)[names(WISP_SLELO) == "NumMiscDebris"] <- "Misc.Debris"
+names(WISP_SLELO)[names(WISP_SLELO) == "NumHydrocharismorsusranae"] <- "Frog.bit"
+names(WISP_SLELO)[names(WISP_SLELO) == "NumTrapanatans"] <- "Water.Chestnut"
+names(WISP_SLELO)[names(WISP_SLELO) == "NumUtriculariaspp"] <- "Bladderwort.spp"
+names(WISP_SLELO)[names(WISP_SLELO) == "NumVallisneriaamericana"] <- "Tape.grass"
+names(WISP_SLELO)[names(WISP_SLELO) == "NumNajasminor"] <- "Brittle.naiad"
+names(WISP_SLELO)[names(WISP_SLELO) == "NumPotamogetonspp"] <- "Pondweed.spp"
+names(WISP_SLELO)[names(WISP_SLELO) == "NumUnknown"] <- "Unknown"
+names(WISP_SLELO)[names(WISP_SLELO) == "NumNymphaeaceae"] <- "Water.lily.spp."
+
+launching <- filter(WISP_SLELO, Direction=="Launching") 
+retrieving <- filter(WISP_SLELO, Direction=="Retrieving") 
+
+
+total.crafts.launching <- sum(launching$ttlWatercraft)
+total.crafts.retrieving <- sum(retrieving$ttlWatercraft)
+total.watercraft <- sum(WISP_SLELO$ttlWatercraft)
+
+total.people <- sum(as.integer(WISP_SLELO$GroupSize))
+total.people.launching <- sum(as.integer(launching$GroupSize))
+total.people.retrieving <- sum(as.integer(retrieving$GroupSize))
+
+total.dirty <- WISP_SLELO %>% filter(InspectAgree=="Yes") %>% filter(AnythingDetect=="Yes") %>% tally()
+total.consent <- WISP_SLELO %>% filter(InspectAgree=="Yes") %>% tally()
+
+percent.consent <- round((total.consent/count(WISP_SLELO)*100), digits = 0)
+percent.dirty <- round((total.dirty/count(WISP_SLELO)*100), digits = 0)
+
+```
+
+## Summary Statistics:
+### This report provides draft statistics for SLELO's `r this.year` Watercraft Inspection Steward Program. As of **`r this.date`**.
+
+#### Total Watercraft Inspections:
+
+  * A total of **`r total.watercraft`** watercraft were documented in **`r count(WISP_SLELO)`** surveys (Figure 1), including:
+    + `r total.crafts.launching` vessels tallied (`r count(launching)` surveys) upon launch
+    + `r total.crafts.retrieving` vessels tallied (`r count(retrieving)` surveys) upon retrieval
+  
+````{r echo=FALSE, message=FALSE, warning=FALSE, results = FALSE}
+
+#bar chart of total by direction
+C.Direction <- WISP_SLELO %>% group_by(Direction) %>% tally()
+ggplot(C.Direction, aes(x=Direction, y=n, label=(n)))+
+  geom_bar(stat="identity", aes(fill=Direction))+
+  labs(x="Direction", y="Number of Inspections", caption ="Figure 1. Total inspections by direction (2021).")+
+  geom_label(position = position_stack(vjust = 0.5))
+
+````
+
+
+````{r plot by launch, echo=FALSE, fig.width=10, fig.height=10}
+
+#bar chart of total by launch
+
+C.Launch <- WISP_SLELO %>% group_by(Launch.Name) %>% tally()
+ggplot(C.Launch, aes(x=reorder(Launch.Name, -n), y=n, label=(n)))+
+  geom_bar(stat="identity", aes(fill=Launch.Name))+
+  geom_label(position = position_stack(vjust = 0.5))+
+  labs(x="Launch Name", y="Number of Inspections", caption ="Figure 2. Total inspections by launch site (2021).")+
+  theme(axis.text.x = element_text(angle = 90), legend.position="none")
+
+AllRegState <-  filter(WISP_SLELO, RegState != "NotRegistered"&RegState!="unkown" ) %>% group_by(RegState) %>% tally()
+AllRegState <- arrange(AllRegState, desc(n))
+
+KnownReg <- sum(AllRegState$n)
+
+NyReg <- filter(WISP_SLELO, RegState == "NY") %>% group_by(RegState) %>% tally()
+
+total.reg.unk <- filter(WISP_SLELO, RegState=="unkown"|RegState=="NotRegistered") %>% group_by(RegState) %>% tally() 
+
+
+````
+
+
+#### Total Contacts
+
+* A total of **`r total.people`** people have been contacted, including:
+    + `r total.people.launching` upon launch
+    + `r total.people.retrieving` upon retrieval
+
+* Registrations were observed from **`r count(AllRegState)`** states or provinces. NY represented `r round((NyReg$n/(KnownReg))*100, 0)`% of known registrations. `r sum(total.reg.unk$n)` surveys included unregistered vessels or boats with an unknown registration state/province. The top five registration states are shown below.
+
+````{r regstates, echo=FALSE}
+library(knitr)
+TopRegState <- arrange(AllRegState, desc(n))
+TopRegState <- top_n(TopRegState, 5)
+kable((TopRegState), align="c", caption="Top 5 Registration States")
+````
+
+#### Inspection Compliance:
+
+
+* **`r total.consent`** groups (`r percent.consent`%) consented to inspection. In total, **`r total.dirty`** inspections (`r percent.dirty`%) had one or more organisms present and the vessel was categorized as "dirty".
+    
+    
+#### Specied Detected:
+
+
+
+````{r species detected prep, echo=FALSE}
+
+#pivot to long and remvoe lines where inspection was declined
+Species.Detect <- pivot_longer(
+  WISP_SLELO,
+  'spiny/Fishhook.Water.flea':'Unknown', 
+  names_to = "Species_Name",
+  values_to = "Species_Detected",
+  values_drop_na = TRUE
+) %>% filter(InspectAgree == "Yes")
+
+Species.Detect$Native.Invasive <- NA #add blank column for native/invasive status
+
+
+# replace 0/1 values with detected/not-detected
+Species.Detect$Species_Detected[Species.Detect$Species_Detected == '0'] <- "Not Detected"
+Species.Detect$Species_Detected[Species.Detect$Species_Detected == '1'] <- "Detected"
+
+
+#Assign native/invasive status column
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Curly.Leaf.Pondweed'] <- "Invasive"
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'spiny/Fishhook.Water.flea'] <- "Invasive"
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Asian.Clam'] <- "Invasive"
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Quagga.Mussel'] <- "Invasive"
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Zebra.Mussel'] <- "Invasive"
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Brazilian.elodea'] <- "Invasive"
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Rusty.crayfish'] <- "Invasive"
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Hydrilla'] <- "Invasive"
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Frog.bit'] <- "Invasive"
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Variable-leaf.Milfoil'] <- "Invasive"
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Eurasian.Watermilfoil'] <- "Invasive"
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Brittle.naiad'] <- "Invasive"
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Starry.Stonewort'] <- "Invasive"
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Water.Chestnut'] <- "Invasive"
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Coontail'] <- "Native/Unknown"
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Elodea.spp'] <- "Native/Unknown"
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Misc.Debris'] <- "Native/Unknown"
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Bladderwort.spp'] <- "Native/Unknown"
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Tape.grass'] <- "Native/Unknown"
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Pondweed.spp'] <- "Native/Unknown"
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Unknown'] <- "Native/Unknown"
+Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Water.lily.spp.'] <- "Native/Unknown"
+
+
+````
+
+````{r species detected counts, echo=FALSE}
+total.species <- Species.Detect %>% filter(Species_Detected=="Detected") %>% tally()
+
+  
+total.invasive <- Species.Detect %>% filter(Species_Detected=="Detected") %>% filter(Native.Invasive=="Invasive") %>% tally()
+
+
+````
+
+
+* A total of **`r total.species`** species were identified on **`r total.dirty`** dirty boats, including **`r total.invasive`** invasive species.
+
+````{r, layout="l-body-outset", echo=FALSE}
+library(knitr)
+Invasive.Direction.sum <- Species.Detect %>% filter(Species_Detected=="Detected") %>% filter(Native.Invasive == "Invasive") %>% count(Species_Name, Native.Invasive, Direction)
+Invaisve.Wide <- pivot_wider(Invasive.Direction.sum, id_cols="Species_Name", names_from = "Direction", values_from="n")
+Invaisve.Wide[is.na(Invaisve.Wide)] = 0
+kable((Invaisve.Wide), align="c", caption="Count of invaisve species observations by direction.")
+````
+
+
+
+
+
+````{r species plot, echo=FALSE}
+#summarize all species detected by direction
+All.Species.Sum <- Species.Detect %>% filter(Species_Detected=="Detected") %>% count(Species_Name, Direction, Species_Detected)
+
+#Summarize invasive species by direction
+Invasive.Direction.sum <- Species.Detect %>% filter(Species_Detected=="Detected") %>% filter(Native.Invasive == "Invasive") %>% count(Species_Name, Native.Invasive, Direction)
+
+Native.Direction.sum <- Species.Detect %>% filter(Species_Detected=="Detected") %>% filter(Native.Invasive == "Native/Unknown") %>% count(Species_Name, Native.Invasive, Direction)
+
+
+ggplot(All.Species.Sum, aes(reorder(x=Species_Name, -n), y=n, label=(n)))+
+  geom_bar(stat="identity", aes(fill=Species_Name))+
+  geom_label(position = position_stack(vjust = 0.5))+
+  labs(x="Species", y="Number of Detections")+
+  theme(axis.text.x = element_text(angle = 90), legend.position= "none")+
+  facet_grid(cols= vars(Direction)) 
+
+
+All.Species.Wide <- pivot_wider(All.Species.Sum, id_cols="Species_Name", names_from = "Direction", values_from="n")
+All.Species.Wide[is.na(All.Species.Wide)] = 0
+kable((All.Species.Wide), align="c", caption="Count of all species observations by direction.")
+
+
+````
+
+#### Previous Waterbody Visits:
+
+````{r echo=FALSE}
+Prev.Wtr.Yes <- filter(WISP_SLELO, Wtr2Wks == "YesDifferentWaterbody"|Wtr2Wks == "YesSameWaterbody")
+
+
+````
+
+
+Of the `r count(launching)` surveys for launching vessels, **`r count(Prev.Wtr.Yes)` (`r round(((count(Prev.Wtr.Yes))/(count(launching))*100),0)`%)** respondents reported visiting a waterbody within the previous two weeks. Of these, `r filter(Prev.Wtr.Yes, Wtr2Wks == "YesSameWaterbody") %>% tally()` reported visiting the same waterbody and `r filter(Prev.Wtr.Yes, Wtr2Wks == "YesDifferentWaterbody") %>% tally()` reported visiting a different waterbody. A full summary of previous waterbody visit data for launching vessels is provided in the table(s) below.
+
+````{r prev data, echo=FALSE}
+Prev.Wtr.Type <- filter(WISP_SLELO, Direction =="Launching") %>% group_by(Wtr2Wks) %>% tally() %>% arrange(desc(n))
+library(knitr)
+kbl(Prev.Wtr.Type, col.names = c("Response", "Count")) %>% kable_styling(bootstrap_options = c("striped", "hover"), full_width = F, position = "center")
+````
+
+
+````{r prev water, echo=FALSE}
+Diff.Wtr.Other <- filter(WISP_SLELO, Direction =="Launching" & PrevWaterbody == "other" & Wtr2Wks == "YesDifferentWaterbody")
+Diff.Wtr.Other <- mutate(Diff.Wtr.Other, PrevWaterbody = PrevWaterbodyOther)
+
+Diff.Wtr <- filter(WISP_SLELO, Direction =="Launching"& PrevWaterbody != "other" & Wtr2Wks == "YesDifferentWaterbody")
+All.Prev.Wtr <- rbind(Diff.Wtr.Other, Diff.Wtr) %>% group_by(PrevWaterbody) %>% tally() %>% arrange(desc(n))
+
+
+library(knitr)
+kable((All.Prev.Wtr), align="c", caption="Waterbodies visited by vessels within two weeks of launch.")
+````
+
+#### Summary of Launch Coverage and Inspections:
+
+````{r day summary, echo=FALSE}
+
+
+
+DaySummary <- WISP_SLELO %>% group_by(Launch.Name, DayofWeek) %>% tally()
+DaySummary$SummaryID <- NA #add blank column for ID
+DaySummary$AverageSurveys <- NA #add blank column 
+DaySummary <- mutate(DaySummary, SummaryID = paste(Launch.Name, DayofWeek, sep="-")) #createuniqueID
+
+DaySummary2 <- WISP_SLELO %>% group_by(Launch.Name, DayofWeek, Survey.Date) %>% tally() #summarize by launch, day, and survey date
+DayAgg <- aggregate(x=DaySummary2$n,
+                    by=list(DaySummary2$Launch.Name,DaySummary2$DayofWeek),
+                    FUN = mean) #aggregate mean values
+DayAgg <- mutate(DayAgg, x = round(x, 0)) %>% arrange(Group.1)
+DayAgg$AverageID <- NA #add blank column for ID
+DayAgg <- mutate(DayAgg, AverageID = paste(Group.1, Group.2, sep="-")) #createuniqueID
+
+#merge data
+CoverageSummary <- merge(DaySummary, DayAgg, by.x="SummaryID", by.y="AverageID", all.x=TRUE)
+#calculate field 
+CoverageSummary <- mutate(CoverageSummary, AverageSurveys = x)
+
+#remove extraneous columns
+CoverageSummary$Group.1 <- CoverageSummary$SummaryID <- CoverageSummary$Group.2 <- CoverageSummary$x <- CoverageSummary$x <-NULL
+
+CoverageSummary$Day <- factor(CoverageSummary$Day, levels=c("Monday", "Tuesday","Wednesday", "Thursday","Friday","Saturday","Sunday"))
+
+CoverageSummary <- arrange(CoverageSummary,Launch.Name,CoverageSummary$Day)
+
+names(CoverageSummary)[names(CoverageSummary) == "Launch.Name"] <- "Launch Name"
+names(CoverageSummary)[names(CoverageSummary) == "DayofWeek"] <- "Day"
+names(CoverageSummary)[names(CoverageSummary) == "n"] <- "Survey Count"
+names(CoverageSummary)[names(CoverageSummary) == "AverageSurveys"] <- "Average Daily Surveys"
+
+CoverageSummary <- CoverageSummary[-c(5)]
+
+
+kable((CoverageSummary), align="c", caption="Summary of inspection by launch and day of week.")
+
+
+````
