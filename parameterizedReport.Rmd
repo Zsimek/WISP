@@ -1,0 +1,122 @@
+---
+title: "Marsh Trends Analysis"
+params:
+  sitesOI:
+    input: select
+    label: "Which study sites would you like to include?"
+    multiple: yes
+    value: ["Bass Creek"] 
+    choices: ["Bass Creek",
+      "Mashomack Point",
+      "Pine Neck",
+      "Accabonac Harbor",
+      "Indian Island",
+      "Hubbard Creek",
+      "North Greensedge - West Hempstead",
+      "Lawrence Marsh",
+      "Cedar Beach",
+      "Frost Creek",
+      "Flax Pond",
+      "West Pond",
+      "East Creek"]
+  seaLevelR:
+    label: 'Adjust the local sea level rise rate here:'
+    value: 3.23
+output:
+  html_document:
+    highlight: null
+    theme: cerulean
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+
+```
+
+## YAML stuff-- 
+In the above YAML block you specify what parameters you want to use. In this case, I've defined:   
+
+   + sitesOI  
+   + seaLevelR  
+
+as the names of the parameters.
+And listed the _choices_ to confine the options. You can make this a mulit-select or a single selection. And a default _value_ to start off with.  
+
+
+rmarkdown uses some nifty windows to help with the interface so you can pass it, so if you select 'knit with parameters' from the knit button in Rstudio, you'll be greeted with a little popup menu where you can adjust what's will be fed into the report. 
+ 
+ 
+### Accessing parameters:
+The parameters listed in the YAML above can be accessed in the _params_ object in your environment. It's a named list so use something like: "r params$sitesOI" inline (good for text strings in the written report side of the document), or as a code chunk to pull in the values for using in filters or similar functions. 
+
+# `r params$sitesOI`
+## `r params$seaLevelR`
+
+I typically pull the values into new objects in the Rmd doc, and then use those to filter out data and call into functions etc. 
+
+rateSL <- params$seaLevelR
+sitesOI <- params$sitesOI
+stationsOI <- StudyStationLocations %>% filter(Site_Name %in% sitesOI) %>% .$Plot_Name
+
+```{r}
+
+StudyStationLocations <- tibble::tribble(
+  ~ Site_Name,
+  ~ Plot_Name,
+  "Pine Neck",
+  "PN-6-S",
+  "Indian Island",
+  "II-2",
+  "Hubbard Creek",
+  "HC-3-S",
+  "Pine Neck",
+  "PN-4",
+  "Accabonac Harbor",
+  "AH-2",
+  "West Pond",
+  "WP-2",
+  "Pine Neck",
+  "PN-6",
+  "Indian Island",
+  "II-4",
+  "Accabonac Harbor",
+  "AH-3-S",
+  "Hubbard Creek",
+  "HC-1-S"
+)
+
+
+rateSL <- params$seaLevelR  
+
+sitesOI <- params$sitesOI 
+
+stationsOI <- StudyStationLocations %>% filter(Site_Name %in% sitesOI) %>%  .$Plot_Name  
+
+
+```
+
+One thing that gets a lot of folks is that whenever you 'knit' a Rmd document the R environment starts out fresh and blank- so if you have data that you are going to need in the Rmd you'll need to call it into the document explicitly (here I just created it within the above chunk, but I typically either call the data directly if it's saved somewhere, or source("code_to_get_data.R") a script to pull it into the environment)
+Using the here package is helpful too (google that if you haven't heard of it yet. Also anything that Jenny Bryan says I try to follow- the best advice I've learned was to not save my R environments, and to restart the R sessions often to clean out objects that I may have created randomly). Sorry for the detour.
+
+
+## Batching out reports-
+Another cool feautre of this after the report has been parameterized, you can feed it a list of 'params' into the *rmarkdown::render()* function and loop through a list of parameters, like sites here, which outputs a standalone file for each parameter fed in. I've done this for over 100 culvert crossings on LI (using the code chunk below) and while it can take a bit of time to run, you can get some nice looking, uniform reports out.
+
+```{r}
+# This won't work, but added it quick in case 
+ # purrr::walk(
+ #    .x = todos,  #<--- this is is just a vector of numbers that are then fed into the 'params' below. 
+ #    .f = ~ rmarkdown::render(
+ #      "summarySheets/summarySheet_tidal.Rmd",
+ #      poster_jacobs(css = "summary_v2.css"),
+ #      params = list(crossingCode = .x # <--- here's where each crossingCode is inserted. 
+ #      output_file = paste0(.x, ".html"), #<--- the name of the file is built from the parameter used in the input.
+ #      output_dir = "D:/culvert_project/tidalCrossings/html_outputs/",
+ #      output_options = list(self_contained = FALSE)
+ #    )
+    
+```
+
+
