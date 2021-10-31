@@ -2,20 +2,15 @@
 title: "Watercraft Inspection Steward Program Summary Report"
 output:
   pdf_document: default
+  html_document:
+    df_print: paged
 ---
 
 
 
-```{r setup, include=FALSE}
+```{r get raw, include=FALSE}
 this.date <- format(Sys.Date(), format="%m/%d/%Y")
 this.year <- substring(this.date,7,10)
-
-
-library(arcgisbinding)
-arc.check_product()
-arc.check_portal()
-wfs <- arc.open("https://services6.arcgis.com/DZHaqZm9cxOD4CWM/ArcGIS/rest/services/WISPA_2019/FeatureServer/0?token=i1zXPDAqPNZaSAnaNLerk1lfeTrpty3pUWOpf0F8Uk9VTZrSSDEA7-G6GqoCpD2ibVnOL_zjWznINWJ9dWFfiUommboAQOAyhVtxX3Rsseip-6RaC8coAnOtVhKIProGVZXd88ofVxZKF-llcgrrSYsTtxsWiI-HIuzPfEwtXcDz96bswnL-xiMDItbGOifoiztXiJFl0nZR0MSP11lDYfIQKSYOfPL7qzmzI12-JoIQELHDQXqTHyjcbhs46Dj_")
-WISP_Raw <- arc.select(wfs)
 
 library(kableExtra)
 library(tidyverse)
@@ -25,11 +20,23 @@ library(lubridate)
 library(kableExtra)
 library(scales)
 library(knitr)
+library(arcgisbinding)
+arc.check_product()
+arc.check_portal()
+wfs <- arc.open("https://services6.arcgis.com/DZHaqZm9cxOD4CWM/arcgis/rest/services/WISPA_2019/FeatureServer/0?token=SktEmf5o_tRhNdY7MLEzjXRqG_KhqO033rONXEt_koLurhUETEM7aFYEtnR7epVKEte89Ikfh_XzKxHspUcdVKEx3J4ZOSmRLfs70U358lrPI8WTSd4ZxYSyfSvkSR2jQ9727kMe5Uf2lfH0LGEjsMQDQljHjrQduofk6-OSoGfqFm_CIGd0VedpKijqgtwoFirod9DLewdB1VPGEyg3y8dgh9XOqyO8ONJO5h2VsfHaAfus3ws2O5gZTPOVBU2Q")
+WISP_Raw <- arc.select(wfs)
 
 
+angler <- arc.open("https://services6.arcgis.com/DZHaqZm9cxOD4CWM/ArcGIS/rest/services/WISPA_Angler_Survey_Read_Only/FeatureServer/0?token=2l6Up7pG3c174Z4Fbi2KpT7m0pD2COmw2IlmgIffqdj1toudrlLdAvXSuePVonHuOkHV2qC_mYXBiosrQCsZ0pf3QlGc7xP-ItqLT19WJtjW5Pv6Lp-fxbScNAYfP8e4tltyM6-IupUZxQvC_sMKrsfuuoOb8mN8Fdzex95ayk_MXHJHPk7ualn_UOmhwEHIrCmyW4Ihi0ZTkLfAS4B42MD03p7quQS2cFrznMfazFnTKw4-z5ag9zxKIPVNmaNA")
+walkup <- arc.open("https://services6.arcgis.com/DZHaqZm9cxOD4CWM/ArcGIS/rest/services/WISPA_Walk_Up_App_View_Only/FeatureServer/0?token=wtlPF-eR7L_gg9EscalJ1jL-_g7pSHKdETK6GooV34LJ3BZx8YCaG-bUi2jUEPESMg6vXHvB7B4nucCyyEAX7JzRiK6-VUKPckNFL_2lUr6sny4Sgb37oHDeXGMThhiZn0ahJh_NS3OdjUhNf3dMI1GmtqvagWepCOO2vdZ6PZXZl2uUOHCYBFEDamiPv3BJgX4d2vf4PlL4yl1ofF3ji8BDZNYnZxbm0xKvYakaRm49-zmOqoAnX9bFMGsofiY-")
+anglerdata <- arc.select(angler) %>% filter(OrgID == "SLELO") %>% filter(Launch != 'TestBoatLaunch')
+walkupdata <- arc.select(walkup) %>% filter(wispa_organization_id == "SLELO") %>% filter(Launch != 'TestBoatLaunch')
+
+SLELO.wfs <- arc.open("https://services6.arcgis.com/DZHaqZm9cxOD4CWM/ArcGIS/rest/services/WISPA_2019_SLELO/FeatureServer/0?token=Ujj_dlXF8REvjYLKM9hF0VDcr0YYgVcUliaucZk6a-AhJT-_IgqsQyuHvJDLGcOXQN2i7N0Gbt4K3J-EljNXivoZR_WH7IUe8z36XURA6L7rupzGOnkcFHRDNnulIlsd203cUvRmAnw3SWhW-W-gvK17DtuefjeNqCgJjsiSvyWVHipTwJfzb4p9x8rBk8Yh3qd_PMISj0N8IOdLY0h_jpbJWTXAdPXJG-oOfmR_18-mn6cwDJCvO8nUW-o7eH0T")
+```
+
+```{r setup, include=FALSE}
 WISP_SLELO <- filter(WISP_Raw, OrgID == "SLELO") #& Launch.Name != "TestBoatLaunch")
-
-
 
 names(WISP_SLELO)[names(WISP_SLELO) == "Launch"] <- "Launch.Name"
 names(WISP_SLELO)[names(WISP_SLELO) == "Date"] <- "Survey.Date"
@@ -41,6 +48,7 @@ WISP_SLELO <- mutate(WISP_SLELO, DayofWeek = weekdays(as.Date(WISP_SLELO$Survey.
 
 WISP_SLELO <- mutate(WISP_SLELO, Survey.Date = format(as.POSIXct(WISP_SLELO$Survey.Date, format='%m/%d/%Y %H:%M:%S'),format='%m/%d/%Y'))#remove time string from survey date
 
+SLELO_Writeable <- arc.select(SLELO.wfs)
 
 #rename species columns
 names(WISP_SLELO)[names(WISP_SLELO) == "NumBythotrephes"] <- "spiny/Fishhook.Water.flea"
@@ -69,7 +77,6 @@ names(WISP_SLELO)[names(WISP_SLELO) == "NumNymphaeaceae"] <- "Water.lily.spp."
 launching <- filter(WISP_SLELO, Direction=="Launching") 
 retrieving <- filter(WISP_SLELO, Direction=="Retrieving") 
 
-
 total.crafts.launching <- sum(launching$ttlWatercraft)
 total.crafts.retrieving <- sum(retrieving$ttlWatercraft)
 total.watercraft <- sum(WISP_SLELO$ttlWatercraft)
@@ -80,117 +87,36 @@ total.people.retrieving <- sum(as.integer(retrieving$GroupSize))
 
 total.dirty <- WISP_SLELO %>% filter(InspectAgree=="Yes") %>% filter(AnythingDetect=="Yes") %>% tally()
 total.consent <- WISP_SLELO %>% filter(InspectAgree=="Yes") %>% tally()
+total.consent.launch <- WISP_SLELO %>% filter(InspectAgree=="Yes" & Direction == "Launching") %>% tally()
+total.consent.retrieve <- WISP_SLELO %>% filter(InspectAgree=="Yes" & Direction == "Retrieving") %>% tally()
 
 percent.consent <- round((total.consent/count(WISP_SLELO)*100), digits = 0)
 percent.dirty <- round((total.dirty/count(WISP_SLELO)*100), digits = 0)
 
-```
+#create total records dataframe
+Source <- c('WISP', 'Walk Up', 'Angler')
+count.wisp <- as.numeric(count(WISP_SLELO))
+count.walkup <- as.numeric(count(walkupdata))
+count.angler <- as.numeric(count(anglerdata))
+Count <- c(count.wisp, count.walkup, count.angler)
+total.records <- data.frame(Source, Count)
 
-## SLELO Summary Statistics:
-### This report provides draft statistics for SLELO's `r this.year` Watercraft Inspection Steward Program as of **`r this.date`**.
-
-#### Total Watercraft Inspections:
-
-  * A total of **`r comma(as.numeric(total.watercraft))`** watercraft were documented in **`r comma(as.numeric(count(WISP_SLELO)))`** surveys (Figure 1), including:
-    + `r comma(as.numeric(total.crafts.launching))` vessels tallied upon launch (`r comma(as.numeric(count(launching)))` surveys)
-    + `r comma(as.numeric(total.crafts.retrieving))` vessels tallied upon retrieval (`r comma(as.numeric(count(retrieving)))` surveys)
-  
-````{r echo=FALSE, message=FALSE, warning=FALSE, results = FALSE}
-
-#bar chart of total by direction
-C.Direction <- WISP_SLELO %>% group_by(Direction) %>% tally()
-ggplot(C.Direction, aes(x=Direction, y=n, label=(n)))+
-  geom_bar(stat="identity", aes(fill=Direction))+
-  labs(x="Direction", y="Number of Inspections", caption ="Figure 1. Total inspections by direction (2021).")+
-  geom_label(position = position_stack(vjust = 0.5))
-
-````
+#create total visitor contacts dataframe
+visitor.wisp <- as.numeric(sum(WISP_SLELO$GroupSize))
+visitor.walkup <- as.numeric(sum(walkupdata$number_of_people_in_party))
+visitor.angler <- as.numeric(sum(anglerdata$GroupSize))
+Visitor.Count <- c(visitor.wisp, visitor.walkup, visitor.angler)
+total.visitor.records <- data.frame(Source, Visitor.Count)
 
 
-````{r plot by launch, echo=FALSE, fig.width=10, fig.height=10}
-
-#bar chart of total by launch
-
-C.Launch <- WISP_SLELO %>% group_by(Launch.Name) %>% tally() %>% arrange(desc(n)) %>% top_n(10)
-ggplot(C.Launch, aes(x=reorder(Launch.Name, -n), y=n, label=(n)))+
-  geom_bar(stat="identity", aes(fill=Launch.Name))+
-  geom_label(position = position_stack(vjust = 0.5))+
-  labs(x="Launch Name", y="Number of Inspections", caption =(paste("Figure 2. Total inspections by launch - top 10 sites ","(",this.year,")", sep="")))+
-  theme(axis.text.x = element_text(angle = 90), legend.position="none")
-
-AllRegState <-  filter(WISP_SLELO, RegState != "NotRegistered"&RegState!="unkown" ) %>% group_by(RegState) %>% tally()
-AllRegState <- arrange(AllRegState, desc(n))
-
-KnownReg <- sum(AllRegState$n)
-
-NyReg <- filter(WISP_SLELO, RegState == "NY") %>% group_by(RegState) %>% tally()
-
-total.reg.unk <- filter(WISP_SLELO, RegState=="unkown"|RegState=="NotRegistered") %>% group_by(RegState) %>% tally() 
-
-
-````
-\newpage
-
-#### Total Contacts
-
-* A total of **`r comma(as.numeric(total.people))`** people have been contacted, including:
-    + `r comma(as.numeric(total.people.launching))` upon launch
-    + `r comma(as.numeric(total.people.retrieving))` upon retrieval
-
-* Registrations were observed from **`r count(AllRegState)`** states or provinces. NY represented `r round((NyReg$n/(KnownReg))*100, 0)`% of known registrations. `r sum(total.reg.unk$n)` surveys included unregistered vessels or boats with an unknown registration state/province. The top five registration states are shown above
-
-````{r regstates, echo=FALSE}
-TopRegState <- arrange(AllRegState, desc(n)) %>% top_n(5)
-kable((TopRegState), "latex", longtable = T, booktabs = T, caption="Top five vessel registration states.")
-
-````
-
-\newpage  
-
-````{r compliance, include=FALSE}
-total.Nconsent <- WISP_SLELO %>% filter(InspectAgree == "No") %>% group_by(Launch.Name ) %>% tally() %>% arrange(desc(n))
-total.bylaunch <- WISP_SLELO %>% group_by(Launch.Name ) %>% tally() %>% arrange(desc(n))
-Total.NConsent.Merge <- merge(total.Nconsent, total.bylaunch, by.x="Launch.Name", by.y="Launch.Name", keep.x=TRUE)
-
-names(Total.NConsent.Merge)[names(Total.NConsent.Merge) == "n.x"] <- "No.Consent"
-names(Total.NConsent.Merge)[names(Total.NConsent.Merge) == "n.y"] <- "Total"
-Total.NConsent.Merge$PercentNoConsent <- round((Total.NConsent.Merge$No.Consent/Total.NConsent.Merge$Total)*100,1)
-Total.NConsent.Merge <-  Total.NConsent.Merge %>% arrange(desc(PercentNoConsent))
-Total.NConsent.Merge %>% arrange(desc(PercentNoConsent)) %>% top_n(3)
-Top.Nos <- paste(Total.NConsent.Merge$Launch.Name[1:3], collapse=", ")
-
-Total.NConsent.Merge$Percent.Declining.Inspection <- paste(Total.NConsent.Merge$PercentNoConsent, "%", " (n=", Total.NConsent.Merge$No.Consent, ")",  sep="")
-Total.NConsent.Merge$No.Consent <-  Total.NConsent.Merge$Total <- Total.NConsent.Merge$PercentNoConsent <-  NULL
-
-````
-
-
-#### Inspection Compliance:
-
-
-* **`r comma(as.numeric(total.consent))`** groups (`r percent.consent`%) consented to inspection. In total, **`r comma(as.numeric(total.dirty))`** inspections (`r percent.dirty`%) had one or more organisms present and the vessel was categorized as "dirty".
-
-* Inspection was most likely to be declined at **`r Top.Nos`**. For a full list of sites where inspection was declined, see table 2.
-````{r no conest table, echo=FALSE}
-kable((Total.NConsent.Merge), "latex", longtable = T, booktabs = T, caption="Sites with inspections declined.")
-
-````
-  
-    
-#### Specied Detected:
-
-
-
-````{r species detected prep, echo=FALSE}
-
-#pivot to long and remvoe lines where inspection was declined
 Species.Detect <- pivot_longer(
   WISP_SLELO,
   'spiny/Fishhook.Water.flea':'Unknown', 
   names_to = "Species_Name",
   values_to = "Species_Detected",
   values_drop_na = TRUE
-) %>% filter(InspectAgree == "Yes")
+)
+
 
 Species.Detect$Native.Invasive <- NA #add blank column for native/invasive status
 
@@ -224,26 +150,309 @@ Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Pondweed.spp'] <-
 Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Unknown'] <- "Native/Unknown"
 Species.Detect$Native.Invasive[Species.Detect$Species_Name == 'Water.lily.spp.'] <- "Native/Unknown"
 
+OtherSpecies <- read.xlsx("T:/CONSERVATION/CONSERVATION PROGRAMS/Invasives/Conservation and GIS Analyst Project/SLELO/WISPA/2021/OtherSpecies.xlsx", sheet = "Data")
+OtherSpecies$Species_Detected <- "Detected"
+names(OtherSpecies)[names(OtherSpecies) == "Select.all.other.species.detected:"] <- "Species_Name"
+names(OtherSpecies)[names(OtherSpecies) == "Launch.*"] <- "Launch.Name"
+
+
+Species.Detect.Sub <- select(Species.Detect, "Launch.Name", "Direction", "Species_Name", "Species_Detected", "Native.Invasive")
+
+Species.Detect.All <- bind_rows(Species.Detect.Sub, OtherSpecies)
+
+total.invasive <- Species.Detect.All %>% filter(Species_Detected=="Detected") %>% filter(Native.Invasive=="Invasive") %>% tally()
+total.invasive <- Species.Detect.All %>% filter(Species_Detected=="Detected") %>% filter(Native.Invasive=="Invasive") %>% tally()
+
+Invasive.Direction.sum <- Species.Detect.All %>% filter(Species_Detected=="Detected") %>% filter(Native.Invasive == "Invasive") %>% count(Species_Name, Native.Invasive, Direction)
+Invaisve.Wide <- pivot_wider(Invasive.Direction.sum, id_cols="Species_Name", names_from = "Direction", values_from="n")
+Invaisve.Wide[is.na(Invaisve.Wide)] = 0
+Invaisve.Wide$Total <- Invaisve.Wide$Retrieving + Invaisve.Wide$Launching
+Invaisve.Wide <- Invaisve.Wide %>%  arrange(desc(Total))
+
+AnglerInspect <- anglerdata %>% group_by(InspectAgree) %>% tally() %>% arrange(desc(n))
+anglersites <- anglerdata %>% group_by(Launch) %>% tally() %>% arrange(desc(n))
+AggAngler <- aggregate(anglerdata$GroupSize, list(anglerdata$Launch), FUN=sum) %>% arrange(desc(x))
+ainspectyes <- filter(AnglerInspect, InspectAgree =="yes")
+ainspectno <- filter(AnglerInspect, InspectAgree =="no")
+
+#get list of item types inspected
+AnglerInsepctionItems <- filter(anglerdata, InspectAgree == 'yes') %>% 
+  group_by(AnglerInspection) %>% tally() %>% arrange(desc(n)) %>% 
+  drop_na
+
+#separate strings of comma separated values
+ItemList <- separate_rows(AnglerInsepctionItems, "AnglerInspection", sep=",", convert = TRUE ) 
+
+#aggregate rows of item types and clean column names
+ItemSummary <- aggregate(ItemList$n, list(ItemList$AnglerInspection), FUN=sum) %>% arrange(desc(x))
+
+#rename columns for table
+names(ItemSummary)[names(ItemSummary) == "x"] <- "Number of Responses"
+names(ItemSummary)[names(ItemSummary) == "Group.1"] <- "Item Type"
+
+AnglerPrevention <- filter(anglerdata, AnglerPrevention != "NotAsked") %>% group_by(AnglerPrevention) %>% tally() %>% arrange(desc(n))
+AnglerPreventionYes <- filter(anglerdata, AnglerPrevention != "NotAsked" & AnglerPrevention != "None") %>% group_by(AnglerPrevention) %>% tally() %>% arrange(desc(n))
+
+#get list of prevention actions
+AnglerPrevention <- filter(anglerdata, AnglerPrevention != 'NotAsked') %>% 
+  group_by(AnglerPrevention) %>% tally() %>% arrange(desc(n)) %>% 
+  drop_na
+
+#separate strings of comma separated values
+PreventionList <- separate_rows(AnglerPrevention, "AnglerPrevention", sep=",", convert = TRUE ) 
+
+#aggregate rows of item types and clean column names
+PreventionSummary <- aggregate(PreventionList$n, list(PreventionList$AnglerPrevention), FUN=sum) %>% arrange(desc(x)) %>% filter(Group.1 != "None")
+
+#rename columns for table
+names(PreventionSummary)[names(PreventionSummary) == "x"] <- "Number of Responses"
+names(PreventionSummary)[names(PreventionSummary) == "Group.1"] <- "Preventative Action"
+
+LiveBait <- anglerdata %>% group_by(LiveBaitYN) %>% tally() %>% arrange(desc(n)) %>% drop_na() %>% filter(LiveBaitYN != "unsureNotAsked")
+LiveBaityes <- filter(anglerdata, LiveBaitYN == "yes")
+
+#get list of bait type actions
+BaitSpecies <- LiveBaityes %>% group_by(LivebaitSpp) %>% tally() %>% arrange(desc(n)) %>% 
+  drop_na
+
+#separate strings of comma separated values
+BaitList <- separate_rows(BaitSpecies, "LivebaitSpp", sep=",", convert = TRUE ) 
+
+#aggregate rows of item types and clean column names
+BaitSummary <- aggregate(BaitList$n, list(BaitList$LivebaitSpp), FUN=sum) %>% arrange(desc(x))
+
+#rename columns for table
+names(BaitSummary)[names(BaitSummary) == "x"] <- "Count"
+names(BaitSummary)[names(BaitSummary) == "Group.1"] <- "Species"
+
+AnglerInspected <- filter(anglerdata, InspectAgree =="yes")
+
+Moist <- AnglerInspected %>% group_by(MoistureDetect) %>% tally()
+moist.yes <- filter(Moist, MoistureDetect == "yes")
+moist.yes.num <- as.integer(moist.yes$n)
+
+OrgDetect <- AnglerInspected %>% group_by(AnythingDetect) %>% tally()
+org.yes <- filter(OrgDetect, AnythingDetect == "yes")
+org.yes.num <- as.integer(org.yes$n)
+
+#get list of organisms detected
+AnglerOrganisms <- filter(anglerdata, InspectAgree == 'yes' & AnythingDetect =="yes") %>% 
+  group_by(OrganismDetect) %>% tally() %>% arrange(desc(n)) %>% 
+  drop_na
+
+#separate strings of comma separated values
+aOrgList <- separate_rows(AnglerOrganisms, "OrganismDetect", sep=",", convert = TRUE ) 
+
+#aggregate rows of item types and clean column names
+aOrgSummary <- aggregate(aOrgList$n, list(aOrgList$OrganismDetect), FUN=sum) %>% arrange(desc(x))
+
+#rename columns for table
+names(aOrgSummary)[names(aOrgSummary) == "x"] <- "Number of Responses"
+names(aOrgSummary)[names(aOrgSummary) == "Group.1"] <- "Organism"
+
+C.Direction <- WISP_SLELO %>% group_by(Direction) %>% tally()
+
+AllRegState <-  filter(WISP_SLELO, RegState != "NotRegistered"&RegState!="unkown" ) %>% group_by(RegState) %>% tally() %>% arrange(desc(n))
+TopRegState <- arrange(AllRegState, desc(n)) %>% top_n(5)
+
+#Total surveys by launch and direction
+Launch.Summary <- WISP_SLELO %>% group_by(Launch.Name, Direction) %>% tally() %>% pivot_wider(id_cols="Launch.Name", names_from="Direction", values_from="n")
+Launch.Summary$Total <- as.integer(Launch.Summary$Launching)+ as.integer(Launch.Summary$Retrieving)
+Launch.Summary <- arrange(Launch.Summary, desc(Total))
+
+measures.taken <- filter(WISP_SLELO, PreventMeasures2018 != "NA")
+
+measures.sum <- filter(measures.taken, InspectAgree == 'Yes')
+  measures.sum$PreventMeasures2018[measures.sum$PreventMeasures2018 == 'NotAsked'] <- "Other"
+  measures.sum$PreventMeasures2018[measures.sum$PreventMeasures2018 == 'Refused'] <- "Other"
+  measures.sum$PreventMeasures2018[measures.sum$PreventMeasures2018 == 'UNK'] <- "Other"
+
+measures.sum <- measures.sum  %>% group_by(Direction, PreventMeasures2018) %>%  tally()
+
+
+#get records for those who did take prevention measures
+measures.yes <- filter(measures.taken, InspectAgree == 'Yes' & PreventMeasures2018 == "Yes")
+
+measures.yes.sum <- measures.yes  %>% group_by(Direction) %>% tally()
+
+list.measures <- measures.yes %>% group_by(Direction, PreventTaken) %>% tally()
+
+ag.measures <- separate_rows(list.measures, PreventTaken, sep=",", convert= TRUE)
+ag.measures.summary <- aggregate(ag.measures$n, list(ag.measures$Direction, ag.measures$PreventTaken), FUN=sum) %>% group_by(Group.1) %>% arrange(.by_group = TRUE, desc(x))
+rm(ag.measures, list.measures)
+
+#measures table
+measures.table <- pivot_wider(ag.measures.summary, id_cols = Group.2, names_from = Group.1, values_from = x)
+names(measures.table)[names(measures.table) == "Group.2"] <- "Preventative Measure"
+measures.table$Total <- measures.table$Launching + measures.table$Retrieving
+
+
+
+
+
+```
+
+This report provides draft statistics for SLELO's `r this.year` Watercraft Inspection Steward Program data as of **`r this.date`**.
+
+## Quick Stats:
+
+  * Total Surveys Recorded: **`r comma(as.numeric(sum(total.records$Count)))`**
+    + WISP: `r comma(as.numeric(count(WISP_SLELO)))` 
+    + Walk-up: `r comma(as.numeric(count(walkupdata)))`
+    + Angler: `r comma(as.numeric(count(anglerdata)))`
+    
+  * Total Visitor Contacts: **`r comma(as.numeric(sum(total.visitor.records$Visitor.Count)))`**
+    + WISP: `r comma(as.numeric(sum(WISP_SLELO$GroupSize)))`
+    + Walk-up: `r comma(as.numeric(sum(walkupdata$number_of_people_in_party)))`
+    + Angler: `r comma(as.numeric(sum(anglerdata$GroupSize)))`
+    
+  * Total Inspections: **`r comma(as.numeric(total.watercraft)+as.numeric(count(anglerdata)))`**
+    + Launching Watercraft: `r comma(as.numeric(total.crafts.launching))`
+    + Retrieving Watercraft: `r comma(as.numeric(total.crafts.retrieving))`
+    + Angler Inspections: `r comma(as.numeric(count(anglerdata)))`
+
+  * Watercraft Inspection Compliance: **`r percent.consent`% of surveyed groups**
+    
+  * Total AIS Interceptions: **`r comma(as.numeric(total.invasive))`**
+    + `r comma(as.numeric(sum(Invaisve.Wide$Launching)))` upon launch
+    + `r comma(as.numeric(sum(Invaisve.Wide$Retrieving)))` upon retrieval
+
+
+
+\newpage
+## SLELO Summary Statistics:
+
+### Total Watercraft Inspections:
+
+  * A total of **`r comma(as.numeric(total.watercraft))`** watercraft were documented in **`r comma(as.numeric(count(WISP_SLELO)))`** surveys (Figure 1), including:
+    + `r comma(as.numeric(total.crafts.launching))` vessels tallied upon launch (`r comma(as.numeric(count(launching)))` surveys)
+    + `r comma(as.numeric(total.crafts.retrieving))` vessels tallied upon retrieval (`r comma(as.numeric(count(retrieving)))` surveys)
+  
+````{r echo=FALSE, message=FALSE, warning=FALSE, results = FALSE}
+
+#bar chart of total by direction
+ggplot(C.Direction, aes(x=Direction, y=n, label=(n)))+
+  geom_bar(stat="identity", aes(fill=Direction))+
+  labs(x="Direction", y="Number of Inspections", caption ="Figure 1. Total inspections by direction (2021).")+
+  geom_label(position = position_stack(vjust = 0.5))
 
 ````
 
-````{r species detected counts, echo=FALSE}
-total.species <- Species.Detect %>% filter(Species_Detected=="Detected") %>% tally()
+\newpage
+````{r launch summary table, echo=FALSE}
+kable((Launch.Summary), "latex", longtable = T, booktabs = T, caption="Summary of surveys by launch and direction.")
 
+````
+
+````{r plot by launch, echo=FALSE, fig.width=10, fig.height=10}
+
+#bar chart of total by launch
+
+C.Launch <- WISP_SLELO %>% group_by(Launch.Name) %>% tally() %>% arrange(desc(n)) %>% top_n(10)
+ggplot(C.Launch, aes(x=reorder(Launch.Name, -n), y=n, label=(n)))+
+  geom_bar(stat="identity", aes(fill=Launch.Name))+
+  geom_label(position = position_stack(vjust = 0.5))+
+  labs(x="Launch Name", y="Number of Inspections", caption =(paste("Figure 2. Total inspections by launch - top 10 sites ","(",this.year,")", sep="")))+
+  theme(axis.text.x = element_text(angle = 90), legend.position="none")
+
+KnownReg <- sum(AllRegState$n)
+
+NyReg <- filter(WISP_SLELO, RegState == "NY") %>% group_by(RegState) %>% tally()
+
+total.reg.unk <- filter(WISP_SLELO, RegState=="unkown"|RegState=="NotRegistered") %>% group_by(RegState) %>% tally() 
+
+
+````
+\newpage
+
+### Total Contacts
+
+* A total of **`r comma(as.numeric(sum(total.visitor.records$Visitor.Count)))`** people were contacted, including:
+    + `r comma(as.numeric(total.people.launching))` visitors upon watercraft launch
+    + `r comma(as.numeric(total.people.retrieving))` visitors upon watercraft retrieval
+    + `r comma(as.numeric(sum(walkupdata$number_of_people_in_party)))` walk-up visitors
+    + `r comma(as.numeric(sum(anglerdata$GroupSize)))` anglers
+
+* Boat registrations were observed from **`r count(AllRegState)`** states or provinces. NY represented `r round((NyReg$n/(KnownReg))*100, 0)`% of known registrations. `r sum(total.reg.unk$n)` surveys included unregistered vessels or boats with an unknown registration state/province. The top five registration states are shown above
+
+````{r regstates, echo=FALSE}
+kable((TopRegState), "latex", longtable = T, booktabs = T, caption="Top five vessel registration states.")
+
+````
+
+\newpage  
+
+````{r compliance, include=FALSE}
+total.Nconsent <- WISP_SLELO %>% filter(InspectAgree == "No") %>% group_by(Launch.Name ) %>% tally() %>% arrange(desc(n))
+total.bylaunch <- WISP_SLELO %>% group_by(Launch.Name ) %>% tally() %>% arrange(desc(n))
+Total.NConsent.Merge <- merge(total.Nconsent, total.bylaunch, by.x="Launch.Name", by.y="Launch.Name", keep.x=TRUE)
+
+names(Total.NConsent.Merge)[names(Total.NConsent.Merge) == "n.x"] <- "No.Consent"
+names(Total.NConsent.Merge)[names(Total.NConsent.Merge) == "n.y"] <- "Total"
+Total.NConsent.Merge$PercentNoConsent <- round((Total.NConsent.Merge$No.Consent/Total.NConsent.Merge$Total)*100,1)
+Total.NConsent.Merge <-  Total.NConsent.Merge %>% arrange(desc(PercentNoConsent))
+Total.NConsent.Merge %>% arrange(desc(PercentNoConsent)) %>% top_n(3)
+Top.Nos <- paste(Total.NConsent.Merge$Launch.Name[1:3], collapse=", ")
+
+Total.NConsent.Merge$Percent.Declining.Inspection <- paste(Total.NConsent.Merge$PercentNoConsent, "%", " (n=", Total.NConsent.Merge$No.Consent, ")",  sep="")
+Total.NConsent.Merge$No.Consent <-  Total.NConsent.Merge$Total <- Total.NConsent.Merge$PercentNoConsent <-  NULL
+
+measures.yes <- filter(WISP_SLELO, InspectAgree == "Yes" & PreventMeasures2018 == "Yes")
+measures.launch <- filter(measures.yes, Direction == "Launching") %>% tally()
+measures.retrieve <- filter(measures.yes, Direction == "Retrieving") %>% tally()
+
+````
+
+
+### Inspection Compliance:
+
+
+  * **`r comma(as.numeric(total.consent))` boating groups** (`r percent.consent`%) and **`r comma(as.numeric(ainspectyes$n))` anglers** (`r round((ainspectyes$n/((ainspectyes$n)+(ainspectno$n))*100),0)`%) consented to inspection.
+    + **`r comma(as.numeric(total.dirty))`** boat inspections (`r percent.dirty`%) had one or more organisms present and the vessel was categorized as "dirty".
+    + **`r org.yes.num`** angler inspections (`r round(org.yes.num/sum(OrgDetect$n)*100,0)`%) had one or more organisms present on gear.
+
+* Of the `r comma(as.numeric(total.consent))` boating groups that consented to inspection, **`r round(((as.integer(count(measures.yes)))/as.numeric(total.consent))*100,0)`%** (n=`r comma(as.integer(count(measures.yes)))`) reported taking one or more spread prevention measures.
+    + Approximately `r round((as.integer(measures.launch)/as.numeric(total.consent))*100,0)`% (n=`r comma(as.integer(measures.launch$n))`) of launching groups reported taking spread prevention measures
+    + Approximately `r round((as.integer(measures.retrieve)/as.numeric(total.consent))*100,0)`% (n=`r comma(as.integer(measures.retrieve$n))`) of retrieving groups reported taking spread prevention measures
+
+````{r no measures table, echo=FALSE}
+kable((measures.table), "latex", longtable = T, booktabs = T, caption="Spread prevention measures reported by survey direction.")
+
+````
+
+* Boat inspection was most likely to be declined at **`r Top.Nos`** (Table 2).
+````{r no conest table, echo=FALSE}
+kable((Total.NConsent.Merge), "latex", longtable = T, booktabs = T, caption="Launch sites with inspections declined.")
+
+````
   
-total.invasive <- Species.Detect %>% filter(Species_Detected=="Detected") %>% filter(Native.Invasive=="Invasive") %>% tally()
+\newpage    
+### Specied Detected:
 
+````{r species detected counts, include=FALSE}
+total.species <- Species.Detect.All %>% filter(Species_Detected=="Detected") %>% tally()
+
+Majority.Interceptions <- if((sum(Invaisve.Wide$Launching)) > (sum(Invaisve.Wide$Retrieving))){
+  print("launching")
+}else{
+  print("retrieving")
+}
+
+Majority.Percent <- if(Majority.Interceptions == "retrieving"){
+  print(round(((sum(Invaisve.Wide$Retrieving))/(sum(sum(Invaisve.Wide$Launching)+sum(Invaisve.Wide$Retrieving)))*100),0)
+)
+}else{
+  print(round(((sum(Invaisve.Wide$Launching))/(sum(sum(Invaisve.Wide$Launching)+sum(Invaisve.Wide$Retrieving)))*100),0)
+)
+}
 
 ````
 
 
 * A total of **`r comma(as.numeric(total.species))`** species were identified on **`r comma(as.numeric(total.dirty))`** dirty boats, including **`r comma(as.numeric(total.invasive))`** invasive species.
+* The majority (`r Majority.Percent`%) of invasive species were intercepted on `r Majority.Interceptions` vessels. A total of `r sum(Invaisve.Wide$Launching)` invasive species were detected upon launch and `r sum(Invaisve.Wide$Retrieving)` upon retrieval.  
 
 ````{r, layout="l-body-outset", echo=FALSE}
-library(knitr)
-Invasive.Direction.sum <- Species.Detect %>% filter(Species_Detected=="Detected") %>% filter(Native.Invasive == "Invasive") %>% count(Species_Name, Native.Invasive, Direction)
-Invaisve.Wide <- pivot_wider(Invasive.Direction.sum, id_cols="Species_Name", names_from = "Direction", values_from="n")
-Invaisve.Wide[is.na(Invaisve.Wide)] = 0
 kable((Invaisve.Wide), "latex", longtable = T, booktabs = T,  caption="Count of invaisve species observations by direction.")
 ````
 
@@ -253,12 +462,12 @@ kable((Invaisve.Wide), "latex", longtable = T, booktabs = T,  caption="Count of 
 
 ````{r species plot, echo=FALSE}
 #summarize all species detected by direction
-All.Species.Sum <- Species.Detect %>% filter(Species_Detected=="Detected") %>% count(Species_Name, Direction, Species_Detected)
+All.Species.Sum <- Species.Detect.All %>% filter(Species_Detected=="Detected") %>% count(Species_Name, Direction, Species_Detected)
 
 #Summarize invasive species by direction
-Invasive.Direction.sum <- Species.Detect %>% filter(Species_Detected=="Detected") %>% filter(Native.Invasive == "Invasive") %>% count(Species_Name, Native.Invasive, Direction)
+Invasive.Direction.sum <- Species.Detect.All %>% filter(Species_Detected=="Detected") %>% filter(Native.Invasive == "Invasive") %>% count(Species_Name, Native.Invasive, Direction)
 
-Native.Direction.sum <- Species.Detect %>% filter(Species_Detected=="Detected") %>% filter(Native.Invasive == "Native/Unknown") %>% count(Species_Name, Native.Invasive, Direction)
+Native.Direction.sum <- Species.Detect.All %>% filter(Species_Detected=="Detected") %>% filter(Native.Invasive == "Native/Unknown") %>% count(Species_Name, Native.Invasive, Direction)
 
 
 #ggplot(All.Species.Sum, aes(reorder(x=Species_Name, -n), y=n, label=(n)))+
@@ -277,16 +486,16 @@ kable((All.Species.Wide), "latex", longtable = T, booktabs = T,  caption="Count 
 ````
 
 \newpage
-#### Previous Waterbody Visits:
+### Previous Waterbody Visits:
 
 ````{r echo=FALSE}
 Prev.Wtr.Yes <- filter(WISP_SLELO, Wtr2Wks == "YesDifferentWaterbody"|Wtr2Wks == "YesSameWaterbody")
-
-
+Prev.Wtr.Same <- filter(WISP_SLELO, Wtr2Wks == "YesSameWaterbody") %>% tally()
+Prev.Wtr.Diff <- filter(WISP_SLELO, Wtr2Wks == "YesDifferentWaterbody") %>% tally()
 ````
 
 
-Of the `r comma(as.numeric(count(launching)))` surveys for launching vessels, **`r comma(as.numeric(count(Prev.Wtr.Yes)))` (`r round(((count(Prev.Wtr.Yes))/(count(launching))*100),0)`%)** respondents reported visiting a waterbody within the previous two weeks. Of these, `r comma(as.numeric(filter(Prev.Wtr.Yes, Wtr2Wks == "YesSameWaterbody") %>% tally()))` reported visiting the same waterbody and `r comma(as.numeric(filter(Prev.Wtr.Yes, Wtr2Wks == "YesDifferentWaterbody") %>% tally()))` reported visiting a different waterbody. A full summary of previous waterbody visit data for launching vessels is provided in the table(s) below.
+Of the `r comma(as.numeric(count(launching)))` surveys performed on launching vessels, **`r comma(as.numeric(count(Prev.Wtr.Yes)))` (`r round(((count(Prev.Wtr.Yes))/(count(launching))*100),0)`%)** respondents reported visiting a waterbody within the previous two weeks. Of these, `r comma(as.numeric(Prev.Wtr.Same))` reported visiting the same waterbody and `r comma(as.numeric(Prev.Wtr.Diff))` reported visiting a different waterbody. A full summary of previous waterbody visit data for launching vessels is provided below (Table 5 & 6). 
 
 ````{r prev data, echo=FALSE}
 Prev.Wtr.Type <- filter(WISP_SLELO, Direction =="Launching") %>% group_by(Wtr2Wks) %>% tally() %>% arrange(desc(n))
@@ -309,14 +518,14 @@ kable((All.Prev.Wtr), "latex", longtable=T, booktabs = T, caption="Waterbodies v
 ````
 
 \newpage
-#### Summary of Launch Coverage and Inspections:
+### Summary of Launch Coverage and Inspections:
 
 * The following table summarizes boater/inspection volume by launch and day of the week including:
-  + Total Survey Count - the total number of surveys record at the specified launch on the specified day
+  + Total Survey Count - the total number of surveys recorded at the specified launch on the specified day
   + Average Daily Surveys - the average number of surveys recorded at the specified launch on the specified day
-  + Days of Coverage - the total number of day the specified launch had coverage on the specified day. Note: if a launch had no surveys recorded on a given, it is not accounted for in this tally.
+  + Days of Coverage - the total number of day the specified launch had coverage on the specified day. Note: if a launch had no surveys recorded on a given day, it is not accounted for in this tally.
 
-````{r day summary, echo=FALSE}
+````{r day summary, include=FALSE}
 
 DaySummary <- WISP_SLELO %>% group_by(Launch.Name, DayofWeek) %>% tally()
 DaySummary$SummaryID <- NA #add blank column for ID
@@ -362,13 +571,119 @@ CoverageSummaryFull$Day <- factor(CoverageSummaryFull$Day, levels=c("Monday", "T
 
 CoverageSummaryFull <- arrange(CoverageSummaryFull,Launch.Name.x, CoverageSummaryFull$Day)
 names(CoverageSummaryFull)[names(CoverageSummaryFull) == "Launch.Name.x"] <- "Launch Name"
+```
 
-
+```{r table, echo=FALSE}
 
 kable((CoverageSummaryFull), "latex", longtable = T, booktabs = T, caption="Summary of inspection by launch and day of week.") %>% kable_styling(latex_options=c("repeat_header"), font_size=7)
 
+```
 
-````
+
+
+\newpage
+
+```{r walkup, message=TRUE, warning=TRUE, echo=FALSE}
+
+#get list of launches where walk up surveys occured
+WalkUpSites <- walkupdata %>% group_by(Launch) %>% tally() %>% arrange(desc(n))
+AggWalk <- aggregate(walkupdata$number_of_people_in_party, list(walkupdata$Launch), FUN=sum) %>% arrange(desc(x))
+
+WalkUpSum <- merge(WalkUpSites, AggWalk, by.x="Launch", by.y="Group.1", all.x=TRUE) %>% arrange(desc(n))
+WalkUpLocal <- walkupdata %>% group_by(are_you_local_to_the_area) %>% tally() %>% arrange(desc(n))
+WalkUpFamiliar <- walkupdata %>% group_by(have_they_heard_of_invasive_spe) %>% tally() %>% arrange(desc(n))
+
+
+toplaunch <- first(WalkUpSites$Launch)
+
+TopWalkUp <- filter(WalkUpSum, Launch == toplaunch)
+
+
+LocalYes <- filter(WalkUpLocal, are_you_local_to_the_area == 'yes')
+LocalNo <- filter(WalkUpLocal, are_you_local_to_the_area == 'out_of_town')
+Local.Yes.Value <- LocalYes$n
+Local.No.Value <- LocalNo$n
+
+FamYes <- filter(WalkUpFamiliar, have_they_heard_of_invasive_spe == 'yes')
+FamNo <- filter(WalkUpFamiliar, have_they_heard_of_invasive_spe == 'no')
+Familiar.Yes.Value <- FamYes$n
+Familiar.No.Value <- FamNo$n
+
+#get list of species types people are familar with
+FamiliarSpecies <- filter(walkupdata, have_they_heard_of_invasive_spe == 'yes') %>% 
+  group_by(if_yes_which_type_and_species) %>% tally() %>% arrange(desc(n)) %>% 
+  drop_na
+
+#separate strings of comma separated values
+SpeciesList <- separate_rows(FamiliarSpecies, "if_yes_which_type_and_species", sep=",", convert = TRUE ) 
+
+#aggregate rows of species types and clean column names
+SpeciesSummary <- aggregate(SpeciesList$n, list(SpeciesList$if_yes_which_type_and_species), FUN=sum) %>% arrange(desc(x))
+
+#rename columns for table
+names(SpeciesSummary)[names(SpeciesSummary) == "x"] <- "Number of Responses"
+names(SpeciesSummary)[names(SpeciesSummary) == "Group.1"] <- "Invasive Type"
+
+#group count on data
+count.on <- walkupdata %>% group_by(can_we_count_on_them_to_do_thei) %>% tally() %>% arrange(desc(n)) %>% drop_na
+
+#isolate values for printing
+count.yes <- filter(count.on, can_we_count_on_them_to_do_thei == 'yes')
+count.poss <- filter(count.on, can_we_count_on_them_to_do_thei == 'possibly')
+count.na <- filter(count.on, can_we_count_on_them_to_do_thei == 'not asked')
+count.no <- filter(count.on, can_we_count_on_them_to_do_thei == 'no')
+
+count.yes.value <- count.yes$n
+count.poss.value <- count.poss$n
+count.na.value <- count.na$n
+count.no.value <- count.no$n
+
+```
+
+### Walkup Survey Results
+* SLELO stewards recorded **`r count(walkupdata)`** walk-up surveys at **`r count(WalkUpSites)`** launch sites accounting for a total of **`r sum(AggWalk$x)`** visitor contacts (Table 8). **`r first(WalkUpSites$Launch)`** had the most walk-up surveys with **`r max(WalkUpSites$n)`** total records and **`r max(AggWalk$x)`** visitor contacts. Approximately **`r round((Local.Yes.Value/(Local.No.Value+Local.Yes.Value))*100,0)`%** of walk-up survey respondents indicated they were local, while **`r round((Local.No.Value/(Local.No.Value+Local.Yes.Value))*100,0)`%** indicated they were from 'out-of-town'.
+
+````{r walk up site table, echo=FALSE}
+
+kable((WalkUpSites), "latex", longtable = T, booktabs = T, caption="Locations where angler surveys were performed.") %>% kable_styling(latex_options=c("repeat_header"), font_size=7)
+
+
+```
+
+* Approximately **`r round((Familiar.Yes.Value/(Familiar.No.Value+Familiar.Yes.Value))*100,0)`%** of respondents (n=**`r Familiar.Yes.Value`**) indicated they had heard about invasive species, while **`r round((Familiar.No.Value/(Familiar.No.Value+Familiar.Yes.Value))*100,0)`%** were not familiar with invasive species.
+  + Respondents who were familiar with invasive species acknowledged:
+
+````{r species table, echo=FALSE}
+
+kable((SpeciesSummary), "latex", longtable = T, booktabs = T, caption="Type of species walk-up respondents were familar with") %>% kable_styling(latex_options=c("repeat_header"), font_size=7)
+
+```
+
+* When asked if we can count on visitors to prevent the spread of invasive species **`r round((count.yes.value/sum(count.on$n))*100,0)`%** said 'yes' and **`r round((count.poss.value/sum(count.on$n))*100,0)`%** said 'possibly'. An additional `r count.na.value` groups were not asked (`r round((count.na.value/sum(count.on$n))*100,0)`% of sample). 
+
+\newpage
+
+
+### Angler Survey Results
+* SLELO stewards recorded **`r count(anglerdata)`** angler surveys at **`r count(anglersites)`** launch sites for a total of **`r sum(AggAngler$x)`** visitor contacts (Table 10). **`r first(anglersites$Launch)`** had the most angler surveys with **`r max(anglersites$n)`** total records and **`r max(AggAngler$x)`** visitor contacts.
+
+````{r angler site table, echo=FALSE}
+
+kable((anglersites), "latex", longtable = T, booktabs = T, caption="Locations where angler surveys were performed.") %>% kable_styling(latex_options=c("repeat_header"), font_size=7)
+
+
+```
+
+* Approximately **`r round((ainspectyes$n/((ainspectyes$n)+(ainspectno$n))*100),0)`%** (n=`r ainspectyes$n`) of anglers consented to have their gear inspected. The items most commonly inspected by stewards were `r paste(ItemSummary$'Item Type'[1:3], " (n=", ItemSummary$'Number of Responses'[1:3], ")", sep="", collapse=", ")`, and `r paste(ItemSummary$'Item Type'[4], " (n=", ItemSummary$'Number of Responses'[4], ")", sep="", collapse=", ")`.
+  + Stewards detected moisture during `r round(moist.yes.num/sum(Moist$n)*100,0)`% (n=`r moist.yes.num`) of inspections
+  + Stewards detected organisms during `r round(org.yes.num/sum(OrgDetect$n)*100,0)`% (n=`r org.yes.num`) of inspections. The most commonly detected organisms were `r paste(aOrgSummary$Organism[1:2], " (n=", aOrgSummary$'Number of Responses'[1:2], ")", sep="", collapse=", ")`, and `r paste(aOrgSummary$Organism[3], " (n=", aOrgSummary$'Number of Responses'[3], ")", sep="", collapse=", ")`. 
+  
+* **`r round((sum(AnglerPreventionYes$n)/(sum(AnglerPrevention$n))*100),0)`%** of anglers asked about spread prevention measures reported taking one or more preventative actions. The most commonly reported actions were `r paste(PreventionSummary$'Preventative Action'[1:3], " (n=", PreventionSummary$'Number of Responses'[1:3], ")", sep="", collapse=", ")`, and `r paste(PreventionSummary$'Preventative Action'[4], " (n=", PreventionSummary$'Number of Responses'[4], ")", sep="", collapse=", ")`.    
+
+* When asked, `r round((as.integer(count(LiveBaityes))/sum(LiveBait$n)*100),0)`% of anglers reported having live bait. The most commonly reported bait species were `r paste(BaitSummary$Species[1:3], " (n=", BaitSummary$Count[1:3], ")", sep="", collapse=", ")`, and `r paste(BaitSummary$Species[4], " (n=", BaitSummary$Count[4], ")", sep="", collapse=", ")`.
+
+
+
 
 
 \newpage
