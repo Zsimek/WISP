@@ -1,4 +1,4 @@
----
+[---
 title: "Watercraft Inspection Steward Program Summary Report"
 output:
   pdf_document: default
@@ -767,3 +767,4 @@ ggplot(Consent.Merge.Plot, aes(x=reorder(OrgID, -Percent.Consent), y=Percent.Con
   theme(axis.text.x = element_text(angle = 90))
 
 ````
+](https://github.com/Zsimek/WISP/blob/main/parameterizedReport_WISP.Rmd)
